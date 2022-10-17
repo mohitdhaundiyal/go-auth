@@ -45,4 +45,31 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 func Login(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+
+	var user models.User
+	var auth models.Authentication
+
+	// decode data from body
+	json.NewDecoder(r.Body).Decode(&auth)
+
+	// check email exists or not
+	res := config.DB.Find(&user, "email = ?", auth.Email)
+
+	if res.RowsAffected != 1 {
+		json.NewEncoder(w).Encode("Username or Password is incorrect")
+		return
+	}
+
+	// json.NewEncoder(w).Encode(&user)
+	// if email exits -> check password matches or not.
+	passwordMatch := utils.CheckPasswordHash(auth.Password, user.Password)
+
+	if passwordMatch {
+		json.NewEncoder(w).Encode("LOGIN SUCCESSFUL!!")
+		return
+	} else {
+		json.NewEncoder(w).Encode("Username or Password is incorrect")
+		return
+	}
+
 }
