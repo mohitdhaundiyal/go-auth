@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/mohitdhaundiyal/go-auth/internal/config"
 	"github.com/mohitdhaundiyal/go-auth/internal/models"
@@ -56,20 +57,29 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	res := config.DB.Find(&user, "email = ?", auth.Email)
 
 	if res.RowsAffected != 1 {
-		json.NewEncoder(w).Encode("Username or Password is incorrect")
+		json.NewEncoder(w).Encode("Username or Password is Incorrect.")
 		return
 	}
 
-	// json.NewEncoder(w).Encode(&user)
 	// if email exits -> check password matches or not.
 	passwordMatch := utils.CheckPasswordHash(auth.Password, user.Password)
 
-	if passwordMatch {
-		json.NewEncoder(w).Encode("LOGIN SUCCESSFUL!!")
-		return
-	} else {
-		json.NewEncoder(w).Encode("Username or Password is incorrect")
+	if !passwordMatch {
+		json.NewEncoder(w).Encode("Username or Password is Incorrect.")
 		return
 	}
 
+	// if password matches :
+	validToken, err := utils.GenerateJWT(user.Email, strconv.Itoa(int(user.ID)))
+
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	var token models.Token
+	token.Email = auth.Email
+	token.TokenString = validToken
+	token.ID = strconv.Itoa(int(user.ID))
+
+	json.NewEncoder(w).Encode(token.TokenString)
 }
